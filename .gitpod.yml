@@ -1,6 +1,9 @@
 tasks:
-  - init: pyenv install -f & pip install -r requirements.txt
-    command: flask init & flask run
+  - init: |
+      pyenv install 3.10.12  # Specify the Python version you need
+      pyenv global 3.10.12   # Set the Python version globally
+      pip install -r requirements.txt
+    command: flask init && flask run
 
 ports:
   - port: 8080
