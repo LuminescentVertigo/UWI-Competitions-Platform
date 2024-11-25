@@ -267,6 +267,37 @@ def display_competition_results_command(name):
 
 app.cli.add_command(comp_cli)
 
+
+'''
+Notification Commands
+'''
+
+notification_cli = AppGroup("notification", help="Notification commands")
+
+@notification_cli.command("add", help="Add a notification for a student")
+@click.argument("sutdent_id", type=int)
+@click.argument("message", type=str)
+def add_notification_command(student_id, message):
+    notification = add_notification(student_id, message)
+    print(notification)
+
+@notification_cli.command("view", help="View all notifications for a student")
+@click.argument("student_id", type=int)
+def view_notifications_command(student_id):
+    notifications = get_notifications(student_id)
+    print(notifications)
+
+@notification_cli.command("rank-update", help="Send ranking change notifications")
+@click.argument("student_id", type=int)
+@click.argument("old_rank", type=int)
+@click.argument("new_rank", type=int)
+def rank_update_command(student_id, old_rank, new_rank):
+    notify_ranking_change(student_id, old_rank, new_rank)
+    print("Rank change notification sent (if applicable).")
+
+app.cli.add_command(notification_cli)
+      
+      
 '''
 Test Commands
 '''
