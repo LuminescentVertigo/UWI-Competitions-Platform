@@ -5,15 +5,20 @@ from datetime import datetime, date
 
 from flask.cli import with_appcontext, AppGroup
 
+from App.controllers.notification import add_notification, get_notifications, notify_ranking_change
 from App.database import db, get_migrate
 from App.main import create_app
 from App.controllers import *
+from App.models import *  
 
 
-# This commands file allow you to create convenient CLI commands for testing controllers
+# This commands file allows you to create convenient CLI commands for testing controllers
 
 app = create_app()
 migrate = get_migrate(app)
+
+# Initialize observer for ranking changes (Observer pattern)
+ranking_observer = RankingObserver()  # Create a ranking observer instance
 
 # This command creates and initializes the database
 @app.cli.command("init", help="Creates and initializes the database")
@@ -21,115 +26,53 @@ def initialize():
     db.drop_all()
     db.create_all()
 
-    #creates students
+    # Creates students
     with open("students.csv") as student_file:
         reader = csv.DictReader(student_file)
-
         for student in reader:
             stud = create_student(student['username'], student['password'])
-            #db.session.add(stud)
-        #db.session.commit()
-    
+            ranking_system = RankingSystem()  # Initialize ranking system
+            stud.register_observer(ranking_observer)  # Register observer to student
+            ranking_system.register_observer(stud)  # Register student to ranking system
+            
     student_file.close()
 
-    #creates moderators
+    # Creates moderators
     with open("moderators.csv") as moderator_file:
         reader = csv.DictReader(moderator_file)
-
         for moderator in reader:
             mod = create_moderator(moderator['username'], moderator['password'])
-            #db.session.add(mod)
-        #db.session.commit()
-    
-    moderator_file.close()
+        moderator_file.close()
 
-    #creates competitions
+    # Creates competitions
     with open("competitions.csv") as competition_file:
         reader = csv.DictReader(competition_file)
-
         for competition in reader:
             comp = create_competition(competition['mod_name'], competition['comp_name'], competition['date'], competition['location'], competition['level'], competition['max_score'])
-    
     competition_file.close()
-    
+
+    # Create teams and add results
     with open("results.csv") as results_file:
         reader = csv.DictReader(results_file)
-
         for result in reader:
             students = [result['student1'], result['student2'], result['student3']]
             team = add_team(result['mod_name'], result['comp_name'], result['team_name'], students)
             add_results(result['mod_name'], result['comp_name'], result['team_name'], int(result['score']))
-            #db.session.add(comp)
-        #db.session.commit()
-    
-    results_file.close()
+        results_file.close()
 
+    # Recalculate rankings and notify observers (only once after all results are processed)
     with open("competitions.csv") as competitions_file:
         reader = csv.DictReader(competitions_file)
-
         for competition in reader:
             if competition['comp_name'] != 'TopCoder':
                 update_ratings(competition['mod_name'], competition['comp_name'])
-                update_rankings()
-            #db.session.add(comp)
-        #db.session.commit()
-    
+                update_rankings()  # This updates the rankings and automatically notifies observers
     competitions_file.close()
 
-    """
-    stud1 = create_student('stud1', 'stud1pass')
-    stud2 = create_student('stud2', 'stud2pass')
-    stud3 = create_student('stud3', 'stud3pass')
-    stud4 = create_student('stud4', 'stud4pass')
-    stud5 = create_student('stud5', 'stud5pass')
-    stud6 = create_student('stud6', 'stud6pass')
-    stud7 = create_student('stud7', 'stud7pass')
-    stud8 = create_student('stud8', 'stud8pass')
-    stud9 = create_student('stud9', 'stud9pass')
-    stud10 = create_student('stud10', 'stud10pass')
-    mod1 = create_moderator('mod1', 'mod1pass')
-    mod2 = create_moderator('mod2', 'mod2pass')
-    mod3 = create_moderator('mod3', 'mod3pass')
-    comp1 = create_competition('mod1', 'comp1', '09-02-2024', 'CSL', 1, 25)
-    comp2 = create_competition('mod2', 'comp2', '09-02-2024', 'CSL', 2, 20)
-    mod = add_mod('mod1', 'comp1', 'mod3')
+    display_rankings()
+    print('Database initialized and rankings updated.')
 
-    students = ["stud1", "stud2", "stud3"]
-    add_team('mod1', 'comp1', "team1", students)
-    add_results('mod1', 'comp1', "team1", 16)
-    
-    students = ["stud4", "stud5", "stud6"]
-    add_team('mod1', 'comp1', "team2", students)
-    add_results('mod1', 'comp1', "team2", 15)
-
-    students = ["stud7", "stud8", "stud9"]
-    add_team('mod1', 'comp1', "team3", students)
-    add_results('mod1', 'comp1', "team3", 12)
-
-    students = ["stud10", "stud4", "stud7"]
-    add_team('mod2', 'comp2', "team1", students)
-    add_results('mod2', 'comp2', "team1", 10)
-    
-    students = ["stud2", "stud5", "stud8"]
-    add_team('mod2', 'comp2', "team2", students)
-    add_results('mod2', 'comp2', "team2", 15)
-
-    students = ["stud3", "stud6", "stud9"]
-    add_team('mod2', 'comp2', "team3", students)
-    add_results('mod2', 'comp2', "team3", 12)
-
-    update_ratings('mod1', 'comp1')
-    update_rankings()
-    
-    update_ratings('mod2', 'comp2')
-    update_rankings()
-    """
-    print('database intialized')
-
-'''
-Student Commands
-'''
-
+# Student Commands
 student_cli = AppGroup("student", help="Student commands") 
 
 @student_cli.command("create", help="Creates a student")
@@ -164,11 +107,7 @@ def display_notifications_command(username):
 
 app.cli.add_command(student_cli)
 
-
-'''
-Moderator Commands
-'''
-
+# Moderator Commands
 mod_cli = AppGroup("mod", help="Moderator commands") 
 
 @mod_cli.command("create", help="Creates a moderator")
@@ -183,19 +122,6 @@ def create_moderator_command(username, password):
 @click.argument("mod2_name", default="mod2")
 def add_mod_to_comp_command(mod1_name, comp_name, mod2_name):
     mod = add_mod(mod1_name, comp_name, mod2_name)
-
-"""
-@mod_cli.command("addTeam", help="Adds a team to a competition")
-@click.argument("mod_name", default="mod1")
-@click.argument("comp_name", default="comp1")
-@click.argument("team_name", default="A")
-@click.argument("student1", default="stud1")
-@click.argument("student2", default="stud2")
-@click.argument("student3", default="stud3")
-def add_team_to_comp_command(mod_name, comp_name, team_name, student1, student2, student3):
-    students = [student1, student2, student3]
-    comp = add_team(mod_name, comp_name, team_name, students)
-"""
 
 @mod_cli.command("addResults", help="Adds results for a team in a competition")
 @click.argument("mod_name", default="mod1")
@@ -218,6 +144,9 @@ def add_results_command(mod_name, comp_name, team_name, student1, student2, stud
 def update_rankings_command(mod_name, comp_name):
     update_ratings(mod_name, comp_name)
     update_rankings()
+
+    # After ranking update, notify observers (following Observer pattern)
+    ranking_observer.notify_ranking_change()
 
 @mod_cli.command("rankings", help="Displays overall rankings")
 def display_rankings_command():
@@ -267,6 +196,37 @@ def display_competition_results_command(name):
 
 app.cli.add_command(comp_cli)
 
+
+'''
+Notification Commands
+'''
+
+notification_cli = AppGroup("notification", help="Notification commands")
+
+@notification_cli.command("add", help="Add a notification for a student")
+@click.argument("sutdent_id", type=int)
+@click.argument("message", type=str)
+def add_notification_command(student_id, message):
+    notification = add_notification(student_id, message)
+    print(notification)
+
+@notification_cli.command("view", help="View all notifications for a student")
+@click.argument("student_id", type=int)
+def view_notifications_command(student_id):
+    notifications = get_notifications(student_id)
+    print(notifications)
+
+@notification_cli.command("rank-update", help="Send ranking change notifications")
+@click.argument("student_id", type=int)
+@click.argument("old_rank", type=int)
+@click.argument("new_rank", type=int)
+def rank_update_command(student_id, old_rank, new_rank):
+    notify_ranking_change(student_id, old_rank, new_rank)
+    print("Rank change notification sent (if applicable).")
+
+app.cli.add_command(notification_cli)
+      
+      
 '''
 Test Commands
 '''
@@ -284,4 +244,3 @@ def user_tests_command(type):
         sys.exit(pytest.main(["-k", "App"]))
 
 app.cli.add_command(test)
-
