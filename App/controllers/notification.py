@@ -39,7 +39,7 @@ def get_notifications(student_id):
     if not notifications:
         return f"No notifications found for student ID: {student_id}."
 
-    return "\n".join([str(notification.to_Dict()) for notification in notifications])
+    return "\n".join([str(notification.to_dict()) for notification in notifications])
     # return jsonify([notification.get_json() for notification in notifications]), 200
 
 # Logic for updating ranking notifications
