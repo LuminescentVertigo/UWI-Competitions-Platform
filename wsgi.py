@@ -203,8 +203,8 @@ Notification Commands
 
 notification_cli = AppGroup("notification", help="Notification commands")
 
-@notification_cli.command("add", help="Add a notification for a student")
-@click.argument("sutdent_id", type=int)
+@notification_cli.command("add", help="Add / Create a notification for a student")
+@click.argument("student_id", type=int)
 @click.argument("message", type=str)
 def add_notification_command(student_id, message):
     notification = add_notification(student_id, message)
