@@ -214,7 +214,11 @@ def add_notification_command(student_id, message):
 @click.argument("student_id", type=int)
 def view_notifications_command(student_id):
     notifications = get_notifications(student_id)
-    print(notifications)
+    if notifications:
+        for n in notifications:
+            print (n)
+    else:
+        print(f"No notifications found for student ID: {student_id}")
 
 @notification_cli.command("rank-update", help="Send ranking change notifications")
 @click.argument("student_id", type=int)
