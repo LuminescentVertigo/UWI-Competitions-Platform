@@ -1,0 +1,27 @@
+{% extends "layout.html" %}
+{% block title %}Add Notification{% endblock %}
+{% block page %}UWI Competitions Platform{% endblock %}
+
+{% block content %}
+    <div class="container">
+        <h2 class="center">Add Notification</h2>
+        <div class="row">
+            <form method="POST" action="{{ url_for('notifications_views.add_notification_view') }}">
+                <div class="input-field col s12">
+                    <label for="student_id">Student ID</label>
+                    <input id="student_id" type="text" name="student_id" required>
+                </div>
+                <div class="input-field col s12">
+                    <label for="message">Message</label>
+                    <textarea id="message" name="message" class="materialize-textarea" required></textarea>
+                </div>
+                <div class="col s12">
+                    <button type="submit" class="btn waves-effect waves-light">Submit Notification</button>
+                </div>
+            </form>
+            <div class="col s12">
+                <a href="{{ url_for('notifications_views.notifications_home') }}" class="btn waves-effect waves-light">Back to Notifications Home</a>
+            </div>
+        </div>
+    </div>
+{% endblock %}
