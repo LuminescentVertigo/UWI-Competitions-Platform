@@ -1,0 +1,16 @@
+{% extends "layout.html" %}
+{% block title %}Notifications Home Page{% endblock %}
+{% block page %}UWI Competitions Platform{% endblock %}
+
+{% block content %}
+    <div class="container">
+        <h2 class="center">Notifications</h2>
+        <div class="row">
+            <div class="col s12">
+                <p>Welcome to the notifications home page. From here, you can view your notifications or manage them.</p>
+                <a href="{{ url_for('notifications_views.add_notification_view') }}" class="btn waves-effect waves-light">Add Notification</a>
+                <a href="{{ url_for('notifications_views.view_notifications', student_id=current_user.id) }}" class="btn waves-effect waves-light">View My Notifications</a>
+            </div>
+        </div>
+    </div>
+{% endblock %}
