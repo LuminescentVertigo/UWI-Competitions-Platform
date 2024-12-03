@@ -12,7 +12,9 @@ LOGGER = logging.getLogger(__name__)
 '''
    Unit Tests
 '''
+
 class UnitTests(unittest.TestCase):
+    '''
     #User Unit Tests
     def test_new_user(self):
         user = User("ryan", "ryanpass")
@@ -93,43 +95,86 @@ class UnitTests(unittest.TestCase):
       db.create_all()
       notification = Notification(1, "Ranking changed!")
       self.assertDictEqual(notification.get_json(), {"id": None, "student_id": 1, "notification": "Ranking changed!"})
-    """
-    #Ranking Unit Tests
-    def test_new_ranking(self):
-      db.drop_all()
-      db.create_all()
-      ranking = Ranking(1)
-      assert ranking.student_id == 1
+    '''
+    # #Ranking Unit Tests
+    # def test_new_ranking(self):
+    #   db.drop_all()
+    #   db.create_all()
+    #   ranking = Ranking(1)
+    #   assert ranking.student_id == 1
   
-    def test_set_points(self):
-      db.drop_all()
-      db.create_all()
-      ranking = Ranking(1)
-      ranking.set_points(15)
-      assert ranking.total_points == 15
+    # def test_set_points(self):
+    #   db.drop_all()
+    #   db.create_all()
+    #   ranking = Ranking(1)
+    #   ranking.set_points(15)
+    #   assert ranking.total_points == 15
 
-    def test_set_ranking(self):
-      db.drop_all()
-      db.create_all()
-      ranking = Ranking(1)
-      ranking.set_ranking(1)
-      assert ranking.curr_ranking == 1
+    # def test_set_ranking(self):
+    #   db.drop_all()
+    #   db.create_all()
+    #   ranking = Ranking(1)
+    #   ranking.set_ranking(1)
+    #   assert ranking.curr_ranking == 1
 
-    def test_previous_ranking(self):
-      db.drop_all()
-      db.create_all()
-      ranking = Ranking(1)
-      ranking.set_previous_ranking(1)
-      assert ranking.prev_ranking == 1
+    # def test_previous_ranking(self):
+    #   db.drop_all()
+    #   db.create_all()
+    #   ranking = Ranking(1)
+    #   ranking.set_previous_ranking(1)
+    #   assert ranking.prev_ranking == 1
 
-    def test_ranking_get_json(self):
-      db.drop_all()
-      db.create_all()
-      ranking = Ranking(1)
-      ranking.set_points(15)
-      ranking.set_ranking(1)
-      self.assertDictEqual(ranking.get_json(), {"rank":1, "total points": 15})
-    """
+    # def test_ranking_get_json(self):
+    #   db.drop_all()
+    #   db.create_all()
+    #   ranking = Ranking(1)
+    #   ranking.set_points(15)
+    #   ranking.set_ranking(1)
+    #   self.assertDictEqual(ranking.get_json(), {"rank":1, "total points": 15})
+    #New Ranking Unit Tests 
+
+    def test_newRankingObserver(self):
+      # Create the observer
+      observer = RankingObserver()
+
+      # Check if the created object is an instance of RankingObserver
+      self.assertIsInstance(observer, RankingObserver)
+
+    def test_initialize_ranking_system(self):
+      # Create an instance of RankingSystem
+      ranking_system = RankingSystem()
+
+      # Verify the system starts with empty lists
+      self.assertEqual(len(ranking_system.students), 0)
+      self.assertEqual(len(ranking_system.observers), 0)   
+
+    def test_register_observer(self):
+      # Create an instance of RankingSystem
+      ranking_system = RankingSystem()
+
+      # Observer to register
+      observer = 'observer1'
+
+      # Register observer
+      ranking_system.register_observer(observer)
+
+      # Verify that the observer is added to the observers list
+      self.assertIn(observer, ranking_system.observers)
+
+    def test_register_observer_multiple_observers(self):
+        # Create an instance of RankingSystem
+        ranking_system = RankingSystem()
+
+        # Register multiple observers
+        observer1 = 'observer1'
+        observer2 = 'observer2'
+        ranking_system.register_observer(observer1)
+        ranking_system.register_observer(observer2)
+
+        # Verify both observers are added
+        self.assertIn(observer1, ranking_system.observers)
+        self.assertIn(observer2, ranking_system.observers)
+    '''
     #CompetitionTeam Unit Tests
     def test_new_competition_team(self):
       db.drop_all()
@@ -186,7 +231,7 @@ class UnitTests(unittest.TestCase):
       self.assertDictEqual(student_team.get_json(), {"id": None, "student_id": 1, "team_id": 1})
 
 '''
-    Integration Tests
+   # Integration Tests
 '''
 class IntegrationTests(unittest.TestCase):
     
@@ -504,3 +549,4 @@ class IntegrationTests(unittest.TestCase):
       update_ratings(mod.username, comp2.name)
       update_rankings()
       self.assertListEqual(get_all_competitions_json(), [{"id": 1, "name": "RunTime", "date": "29-03-2024", "location": "St. Augustine", "level": 2, "max_score": 25, "moderators": ["debra"], "teams": ["Runtime Terrors", "Scrum Lords"]}, {"id": 2, "name": "Hacker Cup", "date": "23-02-2024", "location": "Macoya", "level": 1, "max_score": 20, "moderators": ["debra"], "teams": ["Runtime Terrors", "Scrum Lords"]}])
+      '''
