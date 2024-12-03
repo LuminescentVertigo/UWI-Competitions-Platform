@@ -203,8 +203,8 @@ Notification Commands
 
 notification_cli = AppGroup("notification", help="Notification commands")
 
-@notification_cli.command("add", help="Add a notification for a student")
-@click.argument("sutdent_id", type=int)
+@notification_cli.command("add", help="Add / Create a notification for a student")
+@click.argument("student_id", type=int)
 @click.argument("message", type=str)
 def add_notification_command(student_id, message):
     notification = add_notification(student_id, message)
@@ -214,7 +214,11 @@ def add_notification_command(student_id, message):
 @click.argument("student_id", type=int)
 def view_notifications_command(student_id):
     notifications = get_notifications(student_id)
-    print(notifications)
+    if notifications:
+        for n in notifications:
+            print (n)
+    else:
+        print(f"No notifications found for student ID: {student_id}")
 
 @notification_cli.command("rank-update", help="Send ranking change notifications")
 @click.argument("student_id", type=int)
