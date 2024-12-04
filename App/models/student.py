@@ -80,11 +80,11 @@ class Student(User):
     #Convert the student to a dictionary
     def to_dict(self):
         return {
-            "ID": self.id,
-            "Username": self.username,
-            "Rating Score": self.rating_score,
-            "Number of Competitions": self.comp_count,
-            "Rank": self.curr_rank
+            "id": self.id,
+            "username": self.username,
+            "rating_score": self.rating_score,
+            "comp_count": self.comp_count,
+            "curr_rank": self.curr_rank
         }
 
     def __repr__(self):
