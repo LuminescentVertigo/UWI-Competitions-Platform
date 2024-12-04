@@ -1,94 +1,58 @@
-from flask import Blueprint, render_template, jsonify, request, send_from_directory, flash, redirect, url_for, session
-from flask_jwt_extended import jwt_required, current_user as jwt_current_user
-from flask_login import current_user, login_required
-
-from flask_login import login_required, login_user, current_user, logout_user
-
-from.index import index_views
-
-from App.controllers import *
+from flask import Blueprint, jsonify, request, send_from_directory, flash
+from flask_jwt_extended import create_access_token
+from App.controllers import create_student, get_all_students_json, display_rankings, display_notifications
+from App.controllers.moderator import create_moderator
+from App.models import Student
 
 user_views = Blueprint('user_views', __name__, template_folder='../templates')
 
-# @user_views.route('/users', methods=['GET'])
-# def get_user_page():
-#     users = get_all_users()
-#     return render_template('users.html', users=users)
-"""
-@user_views.route('/api/users', methods=['GET'])
-def get_users_action():
-    users = get_all_students_json()
-    return jsonify(users)
-
-#@user_views.route('/api/users', methods=['POST'])
-#def create_user_endpoint():
-#    data = request.json
-#    response = create_user(data['username'], data['password'])
-#    if response:
-#        return (jsonify({'message': f"user created"}),201)
-#    return (jsonify({'error': f"error creating user"}),500)
-
-@user_views.route('/host_join', methods=['POST'])
-def join_competition():
+#create a new student
+@user_views.route("/api/students", methods=["POST"])
+def create_student_api():
     data = request.json
-    Hosting  = join_comp(data['username'], data['CompName'])
-    if Hosting is None:
-      return jsonify({'message': f"Error"}), 409
-    return jsonify({'message': f" {Hosting.username} has joined {Hosting.CompName}"})
+    student = create_student(data["username"], data["password"])
+    if student:
+        return jsonify({"message": f"User {student.username} created successfully"}), 201
+    return jsonify({"message": "Username already exists"}), 409
 
-@user_views.route('/Create_Host', methods=['POST'])
-def create_host_action():
+#create a new moderator
+@user_views.route("/api/moderators", methods=["POST"])
+def create_moderator_api():
     data = request.json
-    Host  = create_host(data['username'], data['password'],data['host_id'])
-    if Host is None:
-      return jsonify({'message': f"user {data['username']} already exists"}), 409
-    return jsonify({'message': f"user {Host.username} created"})
+    username = data.get("username")
+    password = data.get("password")
 
-@user_views.route('/static/users', methods=['GET'])
-def static_user_page():
-  return send_from_directory('static', 'static-user.html')
+    if not username or not password:
+        return jsonify({"error": "Username and password are required"}), 400
 
-@user_views.route('/tester', methods=['GET'])
-def random_function():
-    flash(f"hello user this test has been successful") 
-    return "yes"
+    moderator = create_moderator(username, password)
 
-@user_views.route('/all_rankings', methods=['GET'])
-def get_user_rankings():
-    users = display_rankings()
-    rankings = [u.to_dict() for u in users]
-    return jsonify(rankings)
+    if moderator:
+        return jsonify({
+            "message": f"Moderator {username} created successfully!",
+            "id": moderator.id
+        }), 201
 
-@user_views.route('/users/competitions/<int:id>', methods = ['GET'])
-def get_user_comps(id):
-    data = request.form
-    # comps = get_user_competitions(data['id'])
-    comps = get_competition(id)
-    # userCompetitions =  [c.toDict() for c in comps]
-    return jsonify(comps)
+    return jsonify({"error": "Failed to create moderator. Username may already exist."}), 409
 
-@user_views.route('/api/students', methods=['POST'])
-def create_student_endpoint():
-    data = request.json
-    student  = create_student(data['username'], data['password'])
-    if student is None:
-      return jsonify({'message': f"user {data['username']} already exists"}), 409
-    return jsonify({'message': f"user {student.username} created"})
+#get all students as a JSON list
+@user_views.route('/api/students', methods=['GET'])
+def get_all_students():
+    students = get_all_students_json()
+    return jsonify(students), 200
 
-@user_views.route('/create_competition', methods=['POST'])
-def create_competition():
-    data = request.json
-    admin = Admin.query.filter_by(staff_id=data['CreatorId']).first()
-    if admin:
-      comp=get_competition_by_name(data['name'])
-      if comp is None:
-        comp=create_competition(data['name'], data['CreatorId'])
-        return jsonify({'message': f"Competition {comp.name} created"})
-      return jsonify({'message': f"Competition {comp.name} already exists"}), 409
-    return jsonify({'message': f"Admin {data['CreatorId']} does not exist! Stop the shenanigans students"}), 409
+#get the overall rankings of all students
+@user_views.route("/api/rankings", methods=["GET"])
+def get_rankings_api():
+    rankings = display_rankings()
+    return jsonify(rankings), 200
 
-@user_views.route('/AllNotifications', methods=['GET'])
-def get_all_notifications():
-    notifications = display_notifications()
-    return jsonify(notifications)
-"""
+#fetch all notifications for a specific student
+@user_views.route("/api/students/<int:student_id>/notifications", methods=["GET"])
+def get_student_notifications_api(student_id):
+    notifications = display_notifications(student_id)
+    if notifications:
+        return jsonify(notifications), 200
+    return jsonify({"message": f"No notifications found for student ID {student_id}"}), 404
+
+

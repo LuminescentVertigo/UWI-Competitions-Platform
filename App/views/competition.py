@@ -1,233 +1,178 @@
-from flask import Blueprint, render_template, jsonify, request, send_from_directory, flash, redirect, url_for, session
-from flask_jwt_extended import jwt_required, current_user as jwt_current_user
+from flask import *
 from flask_login import current_user, login_required
-#from datetime import datetime
-
-from.index import index_views
-
 from App.controllers import *
+from App.models import Moderator
 
-comp_views = Blueprint('comp_views', __name__, template_folder='../templates')
+comp_views = Blueprint("comp_views", __name__, template_folder="../templates")
 
-##return the json list of competitions fetched from the db
-@comp_views.route('/competitions', methods=['GET'])
-def get_competitions():
+#Return the JSON list of competitions fetched from the database
+@comp_views.route("/api/competitions", methods=["GET"])
+def get_competitions_api():
     competitions = get_all_competitions_json()
-    return render_template('competitions.html', competitions=get_all_competitions(), user=current_user)
-    #return (jsonify(competitions),200) 
-"""
-##add new competition to the db
-@comp_views.route('/competitions', methods=['POST'])
-def add_new_comp():
-    data = request.json
-    response = create_competition(data['name'], data['date'], data['location'], data['level'], data['max score'])
-    if response:
-        return (jsonify({'message': "Competition created!"}), 201)
-    return (jsonify({'error': "Error creating competition"}),500)
-"""
-#create new comp
-@comp_views.route('/createcompetition', methods=['POST'])
+    return jsonify(competitions), 200
+
+
+#Add new competition to the database
+@comp_views.route("/api/competitions", methods=["POST"])
 @login_required
-def create_comp():
-    data = request.form
+def create_competition_api():
+    print(f"DEBUG: Current User: {current_user}, Session: {session.get('user_type')}")
     
-    if session['user_type'] == 'moderator':
-        moderator = Moderator.query.filter_by(id=current_user.id).first()
-    else:
-        moderator = None
+    if session.get("user_type") != "moderator":
+        return jsonify({"error": "Unauthorized access"}), 403
 
-    date = data['date']
-    date = date[8] + date[9] + '-' + date[5] + date[6] + '-' + date[0] + date[1] + date[2] + date[3]
-    
-    response = create_competition(moderator.username, data['name'], date, data['location'], data['level'], data['max_score'])
-    return render_template('competitions.html', competitions=get_all_competitions(), user=current_user)
-    #return (jsonify({'message': "Competition created!"}), 201)
-    #return (jsonify({'error': "Error creating competition"}),500)
-    #return render_template('competitions.html', competitions=get_all_competitions())
-
-#page to create new comp
-@comp_views.route('/createcompetition', methods=['GET'])
-def create_comp_page():
-    return render_template('competition_creation.html', user=current_user)
-
-"""
-@comp_views.route('/competitions/moderator', methods=['POST'])
-def add_comp_moderator():
     data = request.json
-    response = add_mod()
-    if response: 
-        return (jsonify({'message': f"user added to competition"}),201)
-    return (jsonify({'error': f"error adding user to competition"}),500)
-"""
-@comp_views.route('/competitions/<int:id>', methods=['GET'])
-def competition_details(id):
-    competition = get_competition(id)
-    if not competition:
-        return render_template('404.html')
-    
-    #team = get_all_teams()
+    date = f"{data['date'][8:10]}-{data['date'][5:7]}-{data['date'][0:4]}"
+    moderator = Moderator.query.filter_by(id=current_user.id).first()
 
-    #teams = get_participants(competition_name)
-    if current_user.is_authenticated:
-        if session['user_type'] == 'moderator':
-            moderator = Moderator.query.filter_by(id=current_user.id).first()
-        else:
-            moderator = None
-    else:
-        moderator = None
-    
-    leaderboard = display_competition_results(competition.name)
-    return render_template('competition_details.html', competition=competition, moderator=moderator, leaderboard=leaderboard, user=current_user)#, team=team)
+    if not moderator:
+        return jsonify({"error": f"Moderator {current_user.username} not found!"}), 404
 
-    #teams = get_participants(competition_name)
-    #return render_template('Competition_Details.html', competition=competition)
-    """
-@index_views.route('/competition/<string:name>', methods=['GET'])
-def competition_details(name):
-    competition = get_competition_by_name(name)
-    if not competition:
-        return render_template('404.html')
-
-    #teams = get_participants(competition_name)
-    return render_template('competition_details.html', competition=competition)
-"""
-@comp_views.route('/competition/<string:name>', methods=['GET'])
-def competition_details_by_name(name):
-    competition = get_competition_by_name(name)
-    if not competition:
-        return render_template('404.html')
-
-    #teams = get_participants(competition_name)
-    if current_user.is_authenticated:
-        if session['user_type'] == 'moderator':
-            moderator = Moderator.query.filter_by(id=current_user.id).first()
-        else:
-            moderator = None
-    else:
-        moderator = None
-    
-    leaderboard = display_competition_results(name)
-
-    return render_template('competition_details.html', competition=competition, moderator=moderator, leaderboard=leaderboard, user=current_user)
-    
-    """
-@comp_views.route('/competitions/results', methods=['POST'])
-def add_comp_results():
-    data = request.json
-    response = add_results(data['mod_name'], data['comp_name'], data['team_name'], data['score'])
-    if response:
-        return (jsonify({'message': "Results added successfully!"}),201)
-    return (jsonify({'error': "Error adding results!"}),500)
-
-@comp_views.route('/competitions/results/<int:id>', methods =['GET'])
-def get_results(id):
-    competition = get_competition(id)
-    leaderboard = display_competition_results(competition.name)
-    if not leaderboard:
-        return jsonify({'error': 'Leaderboard not found!'}), 404 
-    return (jsonify(leaderboard),200)
-"""
-#page to comp upload comp results
-@comp_views.route('/add_results/<int:comp_id>', methods=['GET'])
-def add_results_page(comp_id):
-    competition = get_competition(comp_id)
-    if session['user_type'] == 'moderator':
-        moderator = Moderator.query.filter_by(id=current_user.id).first()
-    else:
-        moderator = None
-
-    leaderboard = display_competition_results(competition.name)
-
-    return render_template('competition_results.html', competition=competition, moderator=moderator, leaderboard=leaderboard, user=current_user)
-
-@comp_views.route('/add_results/<string:comp_name>', methods=['POST'])
-def add_competition_results(comp_name):
-    competition = get_competition_by_name(comp_name)
-    if session['user_type'] == 'moderator':
-        moderator = Moderator.query.filter_by(id=current_user.id).first()
-    else:
-        moderator = None
-        
-    #if request.method == 'POST':
-    data = request.form
-    
-    students = [data['student1'], data['student2'], data['student3']]
-    response = add_team(moderator.username, comp_name, data['team_name'], students)
+    response = create_competition(
+        moderator.username, data["name"], date, data["location"], data["level"], data["max_score"]
+    )
 
     if response:
-        response = add_results(moderator.username, comp_name, data['team_name'], int(data['score']))
-    #response = add_results(data['mod_name'], data['comp_name'], data['team_name'], int(data['score']))
-    #if response:
-    #    return (jsonify({'message': "Results added successfully!"}),201)
-    #return (jsonify({'error': "Error adding results!"}),500)
-    
-    leaderboard = display_competition_results(comp_name)
+        return jsonify({"message": "Competition created successfully!"}), 201
 
-    return render_template('competition_details.html', competition=competition, moderator=moderator, leaderboard=leaderboard, user=current_user)
-    
-@comp_views.route('/confirm_results/<string:comp_name>', methods=['GET', 'POST'])
+    return jsonify({"error": "Error creating competition"}), 500
+
+## Competition details (by ID)
+@comp_views.route("/api/competitions/<int:id>", methods=["GET"])
+def competition_details_api(id):
+    competition = get_competition(id)
+    if not competition:
+        return jsonify({"error": "Competition not found"}), 404
+
+    return jsonify(competition.toDict()), 200
+
+## Confirm and finalize competition results
+@comp_views.route("/confirm_results/<string:comp_name>", methods=["POST"])
+@login_required
 def confirm_results(comp_name):
-    if session['user_type'] == 'moderator':
-        moderator = Moderator.query.filter_by(id=current_user.id).first()
-    else:
-        moderator = None
-    
-    competition = get_competition_by_name(comp_name)
+    if session.get("user_type") != "moderator":
+        return jsonify({"error": "Unauthorized access"}), 403
 
+    competition = get_competition_by_name(comp_name)
+    if not competition:
+        return jsonify({"error": "Competition not found"}), 404
+
+    moderator = Moderator.query.filter_by(id=current_user.id).first()
     if update_ratings(moderator.username, competition.name):
-        update_rankings()
+        update_rankings()  # Recalculate rankings and notify observers
+        return jsonify({"message": "Results confirmed and rankings updated!"}), 200
 
-    leaderboard = display_competition_results(comp_name)
+    return jsonify({"error": "Failed to confirm results!"}), 500
 
-    return render_template('competition_details.html', competition=competition, moderator=moderator, leaderboard=leaderboard, user=current_user)
-"""
-@comp_views.route('/confirm_results/<string:comp_name>', methods=['POST'])
-def confirm_results(comp_name):
-    pass
-"""
 
-@comp_views.route('/competitions_postman', methods=['GET'])
+## POSTMAN: Fetch competitions as JSON
+@comp_views.route("/competitions_postman", methods=["GET"])
 def get_competitions_postman():
     competitions = get_all_competitions_json()
-    return (jsonify(competitions),200)
+    return jsonify(competitions), 200
 
-@comp_views.route('/createcompetition_postman', methods=['POST'])
+
+## POSTMAN: Create a new competition
+@comp_views.route("/createcompetition_postman", methods=["POST"])
 def create_comp_postman():
     data = request.json
-    response = create_competition('robert', data['name'], data['date'], data['location'], data['level'], data['max_score'])
+    response = create_competition(
+        "robert",
+        data["name"],
+        data["date"],
+        data["location"],
+        data["level"],
+        data["max_score"],
+    )
     if response:
-        return (jsonify({'message': "Competition created!"}), 201)
-    return (jsonify({'error': "Error creating competition"}),500)
+        return jsonify({"message": "Competition created!"}), 201
+    return jsonify({"error": "Error creating competition"}), 500
 
-@comp_views.route('/competitions_postman/<int:id>', methods=['GET'])
+
+## POSTMAN: Get competition details
+@comp_views.route("/competitions_postman/<int:id>", methods=["GET"])
 def competition_details_postman(id):
     competition = get_competition(id)
     if not competition:
-        return (jsonify({'error': "Competition not found"}),404)
-    
-    
-    if current_user.is_authenticated:
-        if session['user_type'] == 'moderator':
-            moderator = Moderator.query.filter_by(id=current_user.id).first()
-        else:
-            moderator = None
-    else:
-        moderator = None
-    
-    leaderboard = display_competition_results(competition.name)
-    return (jsonify(competition.toDict()),200)
+        return jsonify({"error": "Competition not found"}), 404
 
-@comp_views.route('/add_results_postman/<string:comp_name>', methods=['POST'])
+    return jsonify(competition.toDict()), 200
+
+
+#Add competition results
+@comp_views.route("/add_results_postman/<string:comp_name>", methods=["POST"])
 def add_competition_results_postman(comp_name):
-    competition = get_competition_by_name(comp_name)
-    
+    if not current_user.is_authenticated:
+        return jsonify({"error": "User not authenticated"}), 401
+
+    if session.get("user_type") != "moderator":
+        return jsonify({"error": "Unauthorized access"}), 403
+
+    try:
+        # Debug current user information
+        print(f"DEBUG: Current User: {current_user.username}, ID: {current_user.id}")
+
+        # Ensure the logged-in user is the moderator
+        moderator = Moderator.query.filter_by(id=current_user.id).first()
+        if not moderator:
+            return jsonify({"error": f"Moderator {current_user.username} not found!"}), 404
+
+        # Debug competition information
+        print(f"DEBUG: Competition Name: {comp_name}")
+
+        # Verify the competition exists
+        competition = get_competition_by_name(comp_name)
+        if not competition:
+            return jsonify({"error": f"Competition {comp_name} not found!"}), 404
+
+        # Check if the current moderator is associated with the competition
+        if moderator not in competition.moderators:
+            return jsonify({"error": f"Moderator {moderator.username} is not authorized to add results for {comp_name}!"}), 403
+
+        data = request.json
+        required_fields = ["student1", "student2", "student3", "team_name", "score"]
+        for field in required_fields:
+            if field not in data:
+                return jsonify({"error": f"Missing required field: {field}"}), 400
+
+        students = [data["student1"], data["student2"], data["student3"]]
+        print(f"DEBUG: Students: {students}")
+
+        # Add the team
+        team_response = add_team(moderator.username, comp_name, data["team_name"], students)
+        if not team_response:
+            return jsonify({"error": "Failed to add team"}), 500
+
+        # Add the results
+        result_response = add_results(moderator.username, comp_name, data["team_name"], int(data["score"]))
+        if not result_response:
+            return jsonify({"error": "Failed to add results"}), 500
+
+        # Update rankings after results
+        update_rankings()
+
+        return jsonify({"message": "Results added and rankings updated!"}), 201
+    except Exception as e:
+        print(f"ERROR: {str(e)}")
+        return jsonify({"error": f"Error occurred: {str(e)}"}), 500
+
+
+
+
+@comp_views.route("/api/competitions/<string:comp_name>/results", methods=["POST"])
+@login_required
+def add_results_api(comp_name):
+    if session.get("user_type") != "moderator":
+        return jsonify({"error": "Unauthorized access"}), 403
+
     data = request.json
-    
-    students = [data['student1'], data['student2'], data['student3']]
-    response = add_team('robert', comp_name, data['team_name'], students)
+    students = [data["student1"], data["student2"], data["student3"]]
+    response = add_team(current_user.username, comp_name, data["team_name"], students)
 
     if response:
-        response = add_results('robert', comp_name, data['team_name'], int(data['score']))
-    if response:
-        return (jsonify({'message': "Results added successfully!"}),201)
-    return (jsonify({'error': "Error adding results!"}),500)
+        response = add_results(current_user.username, comp_name, data["team_name"], int(data["score"]))
+        if response:
+            update_rankings()
+            return jsonify({"message": "Results added and rankings updated!"}), 201
+
+    return jsonify({"error": "Error adding results!"}), 500
