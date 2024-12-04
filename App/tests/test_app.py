@@ -5,6 +5,7 @@ from App.main import create_app
 from App.database import db, create_db
 from App.models import *
 from App.controllers import *
+import hashlib
 
 
 LOGGER = logging.getLogger(__name__)
@@ -652,6 +653,56 @@ class IntegrationTests(unittest.TestCase):
       
       # Compare both as strings or integers based on how the student ID is stored
       self.assertEqual(str(retrieved_notification.student_id), str(student.id))  # Ensures both are strings
+
+    def test_create_student(self):
+
+      db.drop_all()
+      db.create_all()
+
+      student = create_student("james", "jamespass")
+      db.session.commit()
+
+    
+      # Retrieve the student from the database
+      retrieved_student = Student.query.filter_by(username="james").first()
+
+      # Ensure the student is correctly created
+      self.assertEqual(retrieved_student.username, "james")
+
+      # Ensure the password is correctly hashed
+     
+      hashed_password = generate_password_hash("jamespass")
+
+      #Compare the stored hashed password with the generated hash
+      self.assertTrue(retrieved_student.password.startswith("sha256$"))  # Check that it uses SHA256
+      self.assertTrue(check_password_hash(retrieved_student.password, "jamespass"))  # Verify the password)
+      self.assertTrue(any(isinstance(observer, RankingObserver) for observer in retrieved_student.observers),
+                    "RankingObserver should be registered for the student.")
+
+
+    def test_get_all_students_json(self):
+    
+      db.drop_all()
+      db.create_all()
+
+      #Create students to test
+      student1 = create_student("james", "jamespass")
+      student2 = create_student("anna", "annapass")
+      db.session.commit()
+
+      #Call the function to get all students as JSON
+      student_json_list = get_all_students_json()
+
+     
+      # Ensure that the returned list is not empty
+      self.assertGreater(len(student_json_list), 0, "The student list should not be empty.")
+      
+      # Ensure each student in the list has the expected attributes
+      self.assertTrue(all("username" in student for student in student_json_list), "Each student should have a 'username'.")
+      
+      # Verify the first student is correctly included
+      self.assertEqual(student_json_list[0]["username"], "james")
+      self.assertEqual(student_json_list[1]["username"], "anna")
 
     def test1_add_mod(self):
       db.drop_all()
