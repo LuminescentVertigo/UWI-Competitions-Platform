@@ -1,101 +1,51 @@
-from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for
+from flask import Blueprint, request, jsonify
 from flask_login import login_required, current_user
-from App.controllers.notifications_controller import (add_notification, get_notifications, notify_ranking_change,)
+from App.controllers.notification import add_notification, get_notifications, notify_ranking_change
 from App.models import Student
 
-notifications_views = Blueprint('notifications_views', __name__, template_folder='../templates')
+notifications_views = Blueprint('notifications_views', __name__)
 
+#Manually add a notification
+@notifications_views.route('/api/notifications', methods=['POST'])
+def create_notification_api():
+    data = request.json
+    student_id = data.get('student_id')
+    message = data.get('message')
 
-# Route to display all notifications for a student
-@notifications_views.route('/notifications/<int:student_id>', methods=['GET'])
-@login_required
-def view_notifications(student_id):
-    if current_user.id != student_id:
-        flash("You are not authorized to view these notifications.", "danger")
-        return redirect(url_for('notifications_views.notifications_home'))
+    if not student_id or not message:
+        return jsonify({"error": "Missing student_id or message"}), 400
 
-    notifications = get_notifications(student_id)
-    if not notifications:
-        flash(f"No notifications found for student ID {student_id}.", "info")
+    student = Student.query.get(student_id)
+    if not student:
+        return jsonify({"error": "Student not found"}), 404
 
-    return render_template('notifications.html', student_id=student_id, notifications=notifications)
+    notification = add_notification(student_id, message)
+    if notification:
+        return jsonify({"message": "Notification added successfully!", "notification": notification.get_json()}), 201
 
+    return jsonify({"error": "Error adding notification"}), 500
 
-# Route to manually add a notification
-@notifications_views.route('/add-notification', methods=['GET', 'POST'])
-@login_required
-def add_notification_view():
-    if request.method == 'POST':
-        student_id = request.form.get('student_id')
-        message = request.form.get('message')
+#Handle ranking change notifications
+@notifications_views.route('/api/notifications/rank-update', methods=['POST'])
+def rank_update_api():
+    data = request.json
+    student_id = data.get('student_id')
+    old_rank = data.get('old_rank')
+    new_rank = data.get('new_rank')
 
-        # Check if student ID and message are provided
-        if not student_id or not message:
-            flash("Please provide both student ID and a message.", "danger")
-            return redirect(url_for('notifications_views.add_notification_view'))
-
-        # Check if student exists
-        student = Student.query.get(student_id)
-        if not student:
-            flash(f"No student found with ID {student_id}.", "danger")
-            return redirect(url_for('notifications_views.add_notification_view'))
-
-        try:
-            # Attempt to add the notification
-            notification = add_notification(student_id, message)
-            if notification:
-                flash(f"Notification added successfully for student ID {student_id}.", "success")
-            else:
-                flash("There was an error adding the notification.", "danger")
-        except Exception as e:
-            # If any error occurs, catch it and display a message
-            flash(f"An error occurred: {str(e)}", "danger")
-            return redirect(url_for('notifications_views.add_notification_view'))
-
-        return redirect(url_for('notifications_views.notifications_home'))
-
-    return render_template('add-notification.html')
-
-
-# Route to handle ranking change notifications
-@notifications_views.route('/notifications/rank-update', methods=['POST'])
-@login_required
-def rank_update_notification():
-    student_id = request.form.get('student_id')
-    old_rank = request.form.get('old_rank')
-    new_rank = request.form.get('new_rank')
-
-    # Check if all required fields are provided
+    # Validate inputs
     if not student_id or old_rank is None or new_rank is None:
-        flash("All fields (student ID, old rank, new rank) are required.", "danger")
-        return redirect(url_for('notifications_views.notifications_home'))
+        return jsonify({"error": "Missing required fields: student_id, old_rank, new_rank"}), 400
 
-    # Validate rank fields to ensure they are integers
     try:
         old_rank = int(old_rank)
         new_rank = int(new_rank)
     except ValueError:
-        flash("Old rank and new rank must be valid numbers.", "danger")
-        return redirect(url_for('notifications_views.notifications_home'))
+        return jsonify({"error": "Old rank and new rank must be integers"}), 400
 
-    # Check if the student exists
     student = Student.query.get(student_id)
     if not student:
-        flash(f"No student found with ID {student_id}.", "danger")
-        return redirect(url_for('notifications_views.notifications_home'))
+        return jsonify({"error": "Student not found"}), 404
 
-    # Send notification for ranking change
-    try:
-        notify_ranking_change(student_id, old_rank, new_rank)
-        flash(f"Ranking change notification processed successfully for student {student_id}.", "success")
-    except Exception as e:
-        flash(f"An error occurred while processing the ranking change notification: {str(e)}", "danger")
-
-    return redirect(url_for('notifications_views.notifications_home'))
-
-
-# Route to display the notifications home page
-@notifications_views.route('/notifications-home', methods=['GET'])
-@login_required
-def notifications_home():
-    return render_template('notifications-home.html')
+    notify_ranking_change(student_id, old_rank, new_rank)
+    return jsonify({"message": f"Ranking change notification processed for student ID {student_id}"}), 200
