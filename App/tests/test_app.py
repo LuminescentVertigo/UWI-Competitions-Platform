@@ -507,6 +507,7 @@ class IntegrationTests(unittest.TestCase):
     #   self.assertDictEqual(display_notifications("mark"), {"notifications": [{"ID": 4, "Notification": "RANK : 4. Congratulations on your first rank!"}, {"ID": 8, "Notification": "RANK : 2. Congratulations! Your rank has went up."}]})
 
     #Additional Integration Tests
+    
     #Added from new table
     def test_update_student_username(self):
     #  Set up initial database state
@@ -580,6 +581,78 @@ class IntegrationTests(unittest.TestCase):
       #  Verify if the student's rating has been updated in the database
       updated_student = get_student(student.id)  # Retrieve the student again from the database
       self.assertEqual(updated_student.rating_score, 25)  # Ensure the student's rating is updated
+
+
+    def test_recalculate_rank(self):
+      # Step 1: Set up initial database state
+      db.drop_all()
+      db.create_all()
+
+      student1 = create_student("james", "jamespass")
+      student1.rating_score = 30  # Highest rating
+      student1.comp_count = 3
+
+      student2 = create_student("steven", "stevenpass")
+      student2.rating_score = 25  # Second highest rating
+      student2.comp_count = 2
+
+      student3 = create_student("emily", "emilypass")
+      student3.rating_score = 20  # Third highest rating
+      student3.comp_count = 4
+
+      student4 = create_student("mark", "markpass")
+      student4.rating_score = 15  # Lowest rating
+      student4.comp_count = 1
+
+      # Commit initial students to the database
+      db.session.add_all([student1, student2, student3, student4])
+      db.session.commit()
+
+      # Call recalculate_rank to update ranks
+      Student.recalculate_rank(self)
+
+      
+      # Retrieve the students again from the database
+      updated_students = Student.query.order_by(Student.curr_rank).all()
+
+      # Ensure the students are ranked correctly based on rating_score
+      self.assertEqual(updated_students[0].username, "james")  # Rank 1
+      self.assertEqual(updated_students[0].curr_rank, 1)
+
+      self.assertEqual(updated_students[1].username, "steven")  # Rank 2
+      self.assertEqual(updated_students[1].curr_rank, 2)
+
+      self.assertEqual(updated_students[2].username, "emily")  # Rank 3
+      self.assertEqual(updated_students[2].curr_rank, 3)
+
+      self.assertEqual(updated_students[3].username, "mark")  # Rank 4
+      self.assertEqual(updated_students[3].curr_rank, 4)
+
+    def test_add_notification(self):
+      
+      db.drop_all()
+      db.create_all()
+
+      
+      student = create_student("james", "jamespass")
+      db.session.commit()
+
+     
+      # Create a notification and associate it with the student by passing student_id
+      notification = Notification(message="You achieved a new rank!", student_id=student.id)
+      db.session.add(notification)
+      db.session.commit()
+
+    
+      # Retrieve the notification from the database
+      retrieved_notification = Notification.query.first()
+      
+      # Ensure the notification is correctly created and associated with the student
+      self.assertEqual(retrieved_notification.message, "You achieved a new rank!")
+      
+      # Compare both as strings or integers based on how the student ID is stored
+      self.assertEqual(str(retrieved_notification.student_id), str(student.id))  # Ensures both are strings
+
     def test1_add_mod(self):
       db.drop_all()
       db.create_all()
@@ -588,6 +661,9 @@ class IntegrationTests(unittest.TestCase):
       comp = create_competition(mod1.username, "RunTime", "29-03-2024", "St. Augustine", 2, 25)
       assert add_mod(mod1.username, comp.name, mod2.username) != None
        
+
+
+    
     def test2_add_mod(self):
       db.drop_all()
       db.create_all()
