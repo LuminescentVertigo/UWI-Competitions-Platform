@@ -86,8 +86,7 @@ def display_student_info(student_id):
     }
     return profile_info
 
-#Display all notifications for a student.
-'''
+# Display all notifications for a student.
 def display_notifications(student_id):
     student = get_student(student_id)
     if not student:
@@ -98,26 +97,8 @@ def display_notifications(student_id):
     notification_list = []
     for notification in notifications:
         notification_list.append({
-            # "message": notification.message,
-            # "timestamp": notification.timestamp
-            "message": notification.message
-        })
-    
-    return notification_list
-'''
-#altered display_notifications 
-def display_notifications(student_id):
-    student = get_student(student_id)
-    if not student:
-        print(f"Student with ID {student_id} does not exist!")
-        return []
-
-    notifications = student.notifications
-    notification_list = []
-    for notification in notifications:
-        notification_list.append({
-            'id': notification.id,  # Assuming notification has an 'id' field
-            'student_id': student.id,  # Assuming student has an 'id' field
+            'id': notification.id,  
+            'student_id': student.id, 
             'message': notification.message
         })
     
@@ -185,8 +166,6 @@ def update_rankings():
 
     return leaderboard
 
-
-
 #Display overall rankings including scores
 def display_rankings():
     students = get_all_students()
@@ -221,6 +200,8 @@ def display_rankings():
         print(f"{position['placement']:<5}{position['student']:<20}{position['rating_score']}")
     
     return leaderboard
+
+
 
 
     
