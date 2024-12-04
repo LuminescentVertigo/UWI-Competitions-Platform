@@ -2,12 +2,15 @@ from App.database import db
 from App.models import Moderator, Competition, Team, CompetitionTeam
 
 def create_moderator(username, password):
-    mod = get_moderator_by_username(username)
+    # Check if the moderator already exists
+    mod = Moderator.query.filter_by(username=username).first()
     if mod:
         print(f'{username} already exists!')
         return None
 
+    # Create the new Moderator
     newMod = Moderator(username=username, password=password)
+    
     try:
         db.session.add(newMod)
         db.session.commit()
@@ -15,7 +18,7 @@ def create_moderator(username, password):
         return newMod
     except Exception as e:
         db.session.rollback()
-        print(f'Something went wrong creating {username}')
+        print(f'Something went wrong creating {username}: {str(e)}')
         return None
 
 def get_moderator_by_username(username):

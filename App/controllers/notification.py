@@ -70,9 +70,9 @@ def notify_ranking_change(student_id, old_rank, new_rank):
         raise ValueError("Invalid rank values provided.")
 
     if old_rank < new_rank:
-        message = f"Your rank has improved from {old_rank} to {new_rank}!"
-    elif old_rank > new_rank:
         message = f"Your rank has dropped from {old_rank} to {new_rank}."
+    elif new_rank < old_rank:
+        message = f"Your rank has improved from {old_rank} to {new_rank}!"
     else:
         logging.info(f"No rank change for student {student_id}. No notification needed.")
         return  # No change in ranking, no notification needed
