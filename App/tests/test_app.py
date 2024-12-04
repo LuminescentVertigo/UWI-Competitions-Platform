@@ -507,6 +507,79 @@ class IntegrationTests(unittest.TestCase):
     #   self.assertDictEqual(display_notifications("mark"), {"notifications": [{"ID": 4, "Notification": "RANK : 4. Congratulations on your first rank!"}, {"ID": 8, "Notification": "RANK : 2. Congratulations! Your rank has went up."}]})
 
     #Additional Integration Tests
+    #Added from new table
+    def test_update_student_username(self):
+    #  Set up initial database state
+      db.drop_all()  # Drop all tables
+      db.create_all()  # Create fresh tables
+      student = create_student("original_username", "password")  # Create a student with original username
+
+     
+      updated_student = update_student(student.id, "new_username")  # Update the student's username
+      
+     
+      # Fetch the student from the database again to check the username
+      student_from_db = get_student(student.id)
+
+      # Check that the student's username was updated
+      self.assertIsNotNone(updated_student)  # Ensure the returned student is not None
+      self.assertEqual(student_from_db.username, "new_username")  # Ensure the username was updated
+      self.assertNotEqual(student_from_db.username, "original_username")  # Ensure the old username was replaced
+      
+
+
+
+
+    def test_get_all_students(self):
+    # Set up initial database state
+      db.drop_all()  # Drop all tables to start fresh
+      db.create_all()  # Create fresh tables
+
+      # Add students to the database
+      student1 = create_student("james", "jamespass")
+      student2 = create_student("steven", "stevenpass")
+      student3 = create_student("emily", "emilypass")
+
+     
+      all_students = get_all_students()  # Retrieve all students from the database
+
+     
+      # Ensure the function returns a list of students
+      self.assertEqual(len(all_students), 3)  # Ensure the correct number of students are returned
+
+      # Ensure that the students' data is correct
+      student_usernames = [student.username for student in all_students]
+      self.assertIn("james", student_usernames)  # Check if 'james' is in the list
+      self.assertIn("steven", student_usernames)  # Check if 'steven' is in the list
+      self.assertIn("emily", student_usernames)  # Check if 'emily' is in the list
+
+      # verify that the student objects have all expected attributes
+      self.assertTrue(all(hasattr(student, 'id') and hasattr(student, 'username') for student in all_students))
+
+    def test_update_student_rating(self):
+  
+      db.drop_all()  # Drop all tables to start fresh
+      db.create_all()  # Create fresh tables
+
+      # Add a student with an initial rating
+      student = create_student("james", "jamespass")
+      student.rating_score = 15  # Set an initial rating for the student
+      db.session.commit()  # Commit the changes to the database
+
+
+      # Update the student's rating
+      new_rating = 25
+      result = update_student_rating(student.id, new_rating)
+
+    
+      # Ensure the rating update was successful
+      self.assertIsNotNone(result)  # Ensure the result is not None
+      self.assertEqual(result['old_rating'], 15)  # Verify the old rating was 15
+      self.assertEqual(result['updated_rating'], 25)  # Verify the updated rating is 25
+
+      #  Verify if the student's rating has been updated in the database
+      updated_student = get_student(student.id)  # Retrieve the student again from the database
+      self.assertEqual(updated_student.rating_score, 25)  # Ensure the student's rating is updated
     def test1_add_mod(self):
       db.drop_all()
       db.create_all()
