@@ -49,19 +49,14 @@ def create_notification():
         return jsonify({"error": "Failed to create notifications"}), 500
 
 
-# Route to retrieve all notifications for a specific student
-@notifications.route('/notifications/<int:student_id>', methods=['GET'])
+#retrieve all notifications for a specific student
 def get_notifications(student_id):
     student = Student.query.get(student_id)
     if not student:
-        return jsonify({"error": "Student not found"}), 404
+        return None
 
     notifications = Notification.query.filter_by(student_id=student_id).all()
-    if not notifications:
-        return jsonify({"message": f"No notifications found for student ID: {student_id}"}), 404
- 
-    return jsonify([notification.get_json() for notification in notifications]), 200
-
+    return notifications  # Return the list of Notification objects
 
 # Logic for updating ranking notifications
 def notify_ranking_change(student_id, old_rank, new_rank):
