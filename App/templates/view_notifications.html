@@ -1,0 +1,25 @@
+{% extends "layout.html" %}
+{% block title %}View Notifications{% endblock %}
+{% block page %}UWI Competitions Platform{% endblock %}
+
+{% block content %}
+    <div class="container">
+        <h2 class="center">My Notifications</h2>
+        <div class="row">
+            {% if notifications %}
+                <ul class="collection">
+                    {% for notification in notifications %}
+                        <li class="collection-item">
+                            {{ notification.message }}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>No notifications found.</p>
+            {% endif %}
+        </div>
+        <div class="col s12">
+            <a href="{{ url_for('notifications_views.notifications_home') }}" class="btn waves-effect waves-light">Back to Notifications Home</a>
+        </div>
+    </div>
+{% endblock %}
